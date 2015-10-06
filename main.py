@@ -4,12 +4,12 @@
 	ii. Parameter matching
 
 	Assumptions:
-		> source program is not in a single line, i.e., it is well written.
 		> there is no pointers involved in function signatures.
 
 	ToDo:
-		> shift all handlers to FunctionAnalyser module
-		> shift all exceptions to SemanticAnalyserExceptions module
+		> move all handlers to FunctionAnalyser module
+		> move all exceptions to SemanticAnalyserExceptions module
+		> create regex to find error line and line_no
 """
 
 #Imports
@@ -34,7 +34,7 @@ class FunctionDeclarationError(Exception):
 		ii. parameter type is invalid.
 		iii. function name is invalid.
 	"""
-	def __init__(self,error_msg,line_no,line):
+	def __init__(self,error_msg,line_no=-1,line=""):
 		self.error_msg = "FunctionDeclarationError: at "+str(line_no)+") "+line+\
 				"\nError message: "+error_msg
 	def __str__(self):
@@ -60,11 +60,8 @@ if __name__=='__main__':
 			re_function_definition = re.compile(r'(.*?)\s*?([a-z][\w]*?)[(](.*?)[)]\s*?[{]')
 			re_variable_declaration = re.compile(r'[\w* ,]*;')
 			
-			#line-by-line parsing
 			with open(sys.argv[1],'r') as f:
 				src = f.read()
-				#line no for error indication
-				line_no+=1
 
 				vars_info = re_variable_declaration.findall(src)
 				#variable declaration handling
@@ -96,12 +93,14 @@ if __name__=='__main__':
 						#if first lexeme in paranthesis is a data type, it is a function declaration
 						if re.split('\s*',arg.strip())[0] in variable_data_types:
 							if func_info[i][0] not in variable_data_types:
-								raise FunctionDeclarationError("invalid return type "+func_info[i][0],line_no,line)
+								raise FunctionDeclarationError("invalid return type "+func_info[i][0])
+								# raise FunctionDeclarationError("invalid return type "+func_info[i][0],line_no,line)
 							params = []
 							for arg in func_info[i][2].split(','):
 								arg_type = re.split('\s*',arg.strip())[0]
 								if arg_type not in variable_data_types:
-									raise FunctionDeclarationError("invalid parameter type "+arg,line_no,line)
+									raise FunctionDeclarationError("invalid parameter type "+arg)
+									# raise FunctionDeclarationError("invalid parameter type "+arg,line_no,line)
 								params.append(arg_type)
 							function_table.append(f_analyser.Record(type='function',name=func_info[i][1],params=params,return_type=func_info[i][0]))
 				#function call handling
