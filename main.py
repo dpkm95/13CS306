@@ -52,8 +52,8 @@ if __name__=='__main__':
 			#Variables
 			variable_data_types = ['int','float','double','void','char']
 			line_no = 0
-			function_table = []
-			variable_table = []
+			function_table = {}
+			variable_table = {}
 
 			#Regex
 			re_function_declaration_call = re.compile(r'(.*?)\s*([a-z][\w]*?)[(](.*?)[)]\s*;')
@@ -74,7 +74,7 @@ if __name__=='__main__':
 								id = re.search('\w*',var)
 								if id:
 									id = re.search('\w*',var).group()
-									variable_table.append(f_analyser.Record(type='variable',name=id,variable_type=var_info[0]))
+									variable_table[id]=f_analyser.Record(type='variable',name=id,variable_type=var_info[0])
 
 				funcs_info = re_function_definition.findall(src)
 				#function definition handling
@@ -102,17 +102,17 @@ if __name__=='__main__':
 									raise FunctionDeclarationError("invalid parameter type "+arg)
 									# raise FunctionDeclarationError("invalid parameter type "+arg,line_no,line)
 								params.append(arg_type)
-							function_table.append(f_analyser.Record(type='function',name=func_info[i][1],params=params,return_type=func_info[i][0]))
+							function_table[func_info[i][1]] = f_analyser.Record(type='function',name=func_info[i][1],params=params,return_type=func_info[i][0])
 				#function call handling
 				else:
 					#function call handler code
 					pass
 			#func table contents
 			for i in function_table:
-				print(i.name)
+				print(function_table[i].name)
 			#var table contents
 			for i in variable_table:
-				print(i.name)
+				print(variable_table[i].name)
 			print('semantic analysis ended')
 		else:
 			raise InvalidArgumentError
