@@ -1,3 +1,17 @@
-# 13CS306
+About-
+This is a semantic analyser for C program, with limited capabilities.
+It does semantic analysis w.r.t-
+	Function Semantics
+	
+	Variable Semantics
+	
+	Paranthesis Matching
+	
+Dependencies-
+	ply
 
-Semantic Analysis of a C program is done w.r.t the following requirements, semantic check of the function calls and semantic check of the parenthesis. To perform semantic check of the function calls, the C program is parsed and the corresponding function table and the variable table are created. Character Stack (parenthesis) is used to perform semantic check of the parenthesis.
+Assumptions-
+	Function Prototypes
+		Must contain return type int|float.
+	Variable Declarations
+		Must be of type int|float.
