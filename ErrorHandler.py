@@ -6,3 +6,6 @@ class VariableRedeclarationError(Exception):
 
 class VariableTypeError(Exception):
     pass
+
+class FunctionRedeclarationError(Exception):
+    pass
