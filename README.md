@@ -6,9 +6,8 @@ It handles the following cases:
 			Overloading: unique function names.
 		Definition:
 			Overloading: unique function names.
-			Type Check: return variable and formal param type against signature.
 		Call:
-			Definition: function must be defined before call.
+			Function must be declared before call.
 			Type Check: actual params against signature.
 			
 	Variable Semantics:
