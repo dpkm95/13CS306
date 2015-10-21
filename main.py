@@ -3,104 +3,113 @@ import ply.lex as lex
 import ErrorHandler as err_handler
 
 #globals
-symbol_table = {'var':{},'func':{}}
+g_symbol_table = {'var':{},'func':{}}
+l_symbol_table = {'var':{},'func':{}}
 paran_stack = []
 
-g_name = ""
-g_type = ""
-vval = ""
-ntype = ""
-fparam = []
-isfunc = 0
+g_name = None
+g_type = None
+v_val = None
+n_type = None
+f_param = []
+f_isfunc = 0
 
-data_types = {
+keywords = {
+        'if':'KW_IF',
+        'else':'KW_ELSE',
+        'while':'KW_WHILE',
         'int':'T_INT',
         'float':'T_FLOAT'
     }
-
-tokens = ['ID','SC','OP_EQ','NUM_FLOAT','NUM_INT','COMMA',
-          'LBRACE','RBRACE','LPARAN','RPARAN','eof'] + list(data_types.values())
-
-def t_SC(t):
-    r';'
-    return t
-
-def t_COMMA(t):
-    r','
-    return t
-
-def t_LPARAN(t):
-    r'[\(]'
-    t.type = 'LPARAN'
-    paran_stack.append(t)
-    return t
-
-def t_LBRACE(t):
-    r'[\{]'
-    t.type = 'LBRACE'
-    paran_stack.append(t)
-    return t
-
-def t_RPARAN(t):
-    r'[\)]'
-    t.type = 'RPARAN'
-
-    if len(paran_stack)!=0: top = paran_stack[len(paran_stack)-1]
-    else: raise err_handler.ParanMismatchError()
     
-    if top.value is '(':
-        paran_stack.pop()
-    else:
-        #print('Paranthesis mismatch at:',str((top.lineno,find_column(src.read(),top))))
-        raise err_handler.ParanMismatchError()
-    return t
+operators = {
+		'=' : 'OP_EQU',
+		'+' : 'OP_PLU',
+		'-' : 'OP_MIN',
+		'*' : 'OP_MUL',
+		'/' : 'OP_DIV',
+		'<' : 'RELOP_LT',
+		'<=' : 'RELOP_LE',
+		'>' : 'RELOP_GT',
+		'>=' : 'RELOP_GE',
+		'!=' : 'RELOP_NE',
+		'==' : 'RELOP_EQ'
+	}
+	
+markers = {
+	';' : 'MK_SC',
+	',' : 'MK_CM',
+	'(' : 'MK_LPARAN',
+	')' : 'MK_RPARAN',
+	'{' : 'MK_LBRACE',
+	'}' : 'MK_RBRACE'
+}
 
-def t_RBRACE(t):
-    r'[\}]'
-    t.type = 'RBRACE'
+tokens = ['ID','NUM_FLOAT','NUM_INT','eof'] + list(keywords.values()) + list(operators.values()) + list(markers.values()) 
 
-    if len(paran_stack)!=0: top = paran_stack[len(paran_stack)-1]
-    else: raise err_handler.ParanMismatchError()
-    
-    if top.value is '{':
-        paran_stack.pop()
-    else:
-        #print('Paranthesis mismatch at:',str((top.lineno,find_column(src.read(),top))))
-        raise err_handler.ParanMismatchError()
-    return t
-    
-def t_OP_EQ(t):
-    r'='
+def t_OP(t):
+	r'(\+|\*|-|/|=)'
+	t.type = operators[t.value]
+	print(t)
+	return t
+
+def t_MK(t):
+	r'(;|,|\(|\)|\{|\})'
+	t.type = markers[t.value]
+	if t.value == '(' or t.value == '{':
+		paran_stack.append(t)
+	elif t.value == ')':
+		if len(paran_stack)!=0: 
+			top = paran_stack[len(paran_stack)-1]
+		else: 
+			raise err_handler.ParanMismatchError
+		if top.value is '(':
+			paran_stack.pop()
+		else:
+			raise err_handler.ParanMismatchError
+	elif t.value == '}':
+		if len(paran_stack)!=0: 
+			top = paran_stack[len(paran_stack)-1]
+		else: 
+			raise err_handler.ParanMismatchError
+		if top.value is '{':
+			paran_stack.pop()
+		else:
+			raise err_handler.ParanMismatchError
+	return t
+
+def t_ID(t):
+    r'[a-zA-Z][a-zA-Z0-9]*'
+    t.type = keywords.get(t.value,'ID')
+    print(t)
     return t
 
 def t_NUM(t):
     r'[0-9]+(\.[0-9]+)?'
-    global ntype
+    global n_type
     if '.' in t.value:
-        ntype = 'T_FLOAT'
+        n_type = 'T_FLOAT'
         t.type = 'NUM_FLOAT'
         t.value = float(t.value)
     else:
-        ntype = 'T_INT'
+        n_type = 'T_INT'
         t.type = 'NUM_INT'
         t.value = int(t.value)
+    print(t)
     return t
 
-def t_ID(t):
-    r'[a-zA-Z][a-zA-Z0-9]*'
-    t.type = data_types.get(t.value,'ID')
-    return t
-
-#tried to detect eof, but failed
 def t_eof(t):
     r'<<EOF>>'
-    print('eof')
+    print(t)
+    if len(paran_stack)!=0:
+	    top = paran_stack[len(paran_stack)-1]
+	    raise err_handler.ParanMismatchError()
+	    #print('Paranthesis mismatch at:',str((top.lineno,find_column(f.read(),top))))
 
 def t_newline(t):
     r'\n+'
     t.lexer.lineno += len(t.value)
-##    print(len(t.value))
-##    t.lexer.skip(len(t.value))
+    t.lexer.skip(len(t.value))
 
 def find_column(input,token):
     last_cr = input.rfind('\n',0,token.lexpos)
@@ -116,111 +125,177 @@ def t_error(t):
           +' pos:'+str(find_column(src.read(),t)))
     t.lexer.skip(1)
 
-def p_code(p):
+# CONSTRUCT - definition of function or declaration of function/var
+def p_start(p):
     '''
-        S : DECL DECL
+        S : CONSTRUCT S
             | empty
     '''
 
-def p_dec(p):
+# Y - branch b/w function and variable
+# VAG - variable assignment in global space, RHS can only be constants.
+# F - function(declaration/definition)
+# FP - formal parameters
+# P - parameter
+def p_base(p):
     '''
-        DECL : DT ID set_name Y 
-        Y : F SC make_func_entry
-            | V SC make_var_entry
-        V : OP_EQ NUM
+        CONSTRUCT : DT ID set_name Y 
+        Y : MK_LPARAN set_isfunc FP MK_RPARAN F
+            | VA_G MK_SC make_var_entry
+        VA_G : OP_EQU NUM
             | empty
-        F : LPARAN set_isfunc P RPARAN
-        P : A COMMA P
-            | A
-        A : DT ID
-            | DT
+        F : MK_SC make_func_entry set_isdec
+        	| MK_LBRACE make_func_entry set_isdef STMTS MK_RBRACE
+        FP : P MK_CM FP
+            | P
+        P : DT ID
     '''
 
-def p_set_isfunc(p):
-    'set_isfunc :'
-    global isfunc
-    isfunc = 1
+# VAL - variable assignment in local, RHS can be number/expression/function call
+def p_statements(p):
+	'''
+		STMTS : STMT STMTS
+			| empty
+		STMT : KW_IF MK_LPARAN EXPR MK_RPARAN MK_LBRACE STMT MK_RBRACE KW_ELSE MK_LBRACE STMT MK_RBRACE
+			| KW_WHILE MK_LPARAN EXPR MK_RPARAN MK_LBRACE STMT MK_RBRACE
+			| DT ID set_name VA_L MK_SC make_var_entry
+			| FCALL
+		VA_L : OP_EQU VA_RHS
+			| empty
+		VA_RHS : NUM
+			| EXPR
+			| FCALL
+	'''
 
-def p_num(p):
+def p_expression(p):
+	'''
+		EXPR : ID
+	'''
+
+def p_function_call(p):
+	'''
+		FCALL : ID MK_LPARAN AP MK_RPARAN MK_SC
+		AP : ID MK_CM AP
+			| ID
+	'''
+
+def p_numeric(p):
     '''
-        NUM : NUM_INT set_vval
-            | NUM_FLOAT set_vval
+        NUM : NUM_INT set_v_val
+            | NUM_FLOAT set_v_val
     '''
 
-def p_dt(p):
+def p_datatype(p):
     '''
         DT : T_INT set_type
             | T_FLOAT set_type
     '''
 
+def p_set_isfunc(p):
+    'set_isfunc :'
+    global f_isfunc
+    f_isfunc = 1
+
+def p_set_isdec(p):
+    'set_isdec :'
+    global f_isfunc
+    f_isfunc = 2
+
+def p_set_isdef(p):
+    'set_isdef :'
+    global f_isfunc
+    f_isfunc = 3
+
 def p_set_type(p):
     'set_type :'
-    global g_type,isfunc,fparam
-    if isfunc == 0:
+    global g_type,f_isfunc,f_param
+    if f_isfunc == 0 or f_isfunc == 3:
         g_type = p[-1]
     else:
-        fparam.append(p[-1])
+        f_param.append(p[-1])
 
 def p_set_name(p):
     'set_name :'
     global g_name
     g_name = p[-1]
 
-def p_set_vval(p):
-    'set_vval :'
-    global vval
-    vval = p[-1]
+def p_set_v_val(p):
+    'set_v_val :'
+    global v_val
+    v_val = p[-1]
 
 def p_make_var_entry(p):
     'make_var_entry :'
+    print('in var',f_isfunc)
     check_var_semantics()
-    symbol_table['var'][g_name] = {'type':g_type,'value':vval}
+    if f_isfunc == 3:
+    	if n_type is not None: l_symbol_table['var'][g_name] = {'type':g_type,'value':v_val}
+    	else: l_symbol_table['var'][g_name] = {'type':g_type,'value':{'int':0,'float':0.0}[g_type]}
+    else:
+    	if n_type is not None: g_symbol_table['var'][g_name] = {'type':g_type,'value':v_val}
+    	else: g_symbol_table['var'][g_name] = {'type':g_type,'value':{'int':0,'float':0.0}[g_type]}
+    
     reset_var_globals()
-    print(symbol_table)
 
 def p_error(p):
     print('syntax error',p)
 
 def check_var_semantics():
     #check is variable is already defined
-    if g_name in symbol_table['var']: raise err_handler.VariableRedeclarationError
+    if f_isfunc == 3:
+    	if g_name in l_symbol_table['var']: raise err_handler.VariableRedeclarationError
+    else:
+    	if g_name in g_symbol_table['var']: raise err_handler.VariableRedeclarationError
     #check if declared var_type matches num_type
-    if ntype is not data_types[g_type]: raise err_handler.VariableTypeError
+    if n_type is not None:
+        if n_type is not keywords[g_type]: raise err_handler.VariableTypeError
 
 def reset_var_globals():
-    global vval,g_name,g_type
-    vval = 0
-    g_name = ""
-    g_type = ""
-    ntype = ""
+    global v_val,g_name,g_type
+    v_val = 0
+    g_name = None
+    g_type = None
+    n_type = None
 
 def p_make_func_entry(p):
-    'make_func_entry :'
-    if g_name in symbol_table['func']: raise err_handler.FunctionRedeclarationError
-    else:
-        symbol_table['func'][g_name] = {'return_type' : g_type, 'param' : fparam}
-        print(symbol_table)
-        reset_func_globals()
+	'make_func_entry :'
+	print('in func',f_isfunc)
+	if f_isfunc == 3:
+		if g_name in l_symbol_table['func']: 
+			raise err_handler.FunctionRedeclarationError
+		else: l_symbol_table['func'][g_name] = {'return_type' : g_type, 'param' : f_param}
+	else:
+		if g_name in g_symbol_table['func']: 
+			raise err_handler.FunctionRedeclarationError
+		else:
+			g_symbol_table['func'][g_name] = {'return_type' : g_type, 'param' : f_param}	                
+	reset_func_globals()
+
 
 def p_empty(p):
     'empty :'
     pass    
 
 def reset_func_globals():
-    global g_name,fparam,g_type,isfunc
-    g_name = ""
-    g_type = ""
-    fparam = []
-    isfunc = 0
+    global g_name,f_param,g_type,f_isfunc
+    g_name = None
+    g_type = None
+    f_param = []
+    f_isfunc = 0
 
 lexer = lex.lex()
-src = open('test.c')
-##lexer.input(src.read())
-##for i in lexer:
-##    pass
-##if len(paran_stack)!=0:
-##    top = paran_stack[len(paran_stack)-1]
-##    raise err_handler.ParanMismatchError()
-##    #print('Paranthesis mismatch at:',str((top.lineno,find_column(f.read(),top))))
+# src = open('test.c')
+# lexer.input('int a=10;')
+# for i in lexer:
+#     pass
+
 parser = yacc.yacc()
-parser.parse('int a=10;\n int sum(int,int);')
+parser.parse('''
+		int a=10;
+		int sum(int a, int b){
+			int a=20;
+			float b = 10.3;
+		}
+	''')
+print(g_symbol_table)
+print(l_symbol_table)

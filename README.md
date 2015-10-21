@@ -26,5 +26,7 @@ Dependencies:
 Assumptions:
 	Function Prototypes:
 		Must contain return type int or float.
+		Formal parameter must have data type and name.
 	Variable Declarations:
+		In global space only one declaration per line is allowed.
 		Must be of type int or float.
