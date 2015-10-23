@@ -1,7 +1,7 @@
 ##About:
 This is a _semantic analyser for C program_, with _limited capabilities_.
 It handles the following cases:
-  ####Function Semantics:
+  * Function Semantics:
     * Declaration:
       - Overloading: unique function names.
     * Definition:
@@ -10,14 +10,14 @@ It handles the following cases:
       - Function must be declared before call.
       - Type Check: actual params against signature.
 			
-  ####Variable Semantics:
+  * Variable Semantics:
     * Declaration:
       - Redeclaration: redeclaration not allowed within the same scope.
     * Assignment:
       - Declaration: variable must be declared before assignment.
       - Type Check: variable type against assigned value type.
 			
-  ####Parenthesis Matching: Error Message raised on detection of mismatch.
+  * Parenthesis Matching: Error Message raised on detection of mismatch.
 	
 ##Dependencies:
   * ply
