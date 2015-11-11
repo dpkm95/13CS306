@@ -135,7 +135,6 @@ def p_start(p):
 
 def p_seen_eof(p):
 	'seen_eof :'
-	# print('seen_eof')
 	check_paran_mismatch()
 	print('Semantic Analysis Completed.')
 
@@ -148,7 +147,6 @@ def p_construct(p):
 
 def p_seen_eoc(p):
 	'seen_eoc :'
-	# print('seen_eoc')
 	check_paran_mismatch()
 
 # Y - branch b/w function and variable
@@ -203,6 +201,7 @@ def p_function_call(p):
 		if func_details == -1: 
 			raise FunctionNotDeclaredError(e_lineno-1,g_name)
 		else:
+
 			e_type.append(func_details['return_type'])
 	except err_handler.FunctionNotDeclaredError as e:
 		print(str(e))
@@ -276,7 +275,6 @@ def p_add( p ) :
 		EXPR : EXPR OP_PLU EXPR
 	'''
 	global e_type
-	# print(e_type)
 	try:	
 		try:
 			if e_type[0] != e_type[1]:
@@ -486,7 +484,7 @@ def p_and( p ) :
 		exit(0)
 	else:
 		e_type.pop()
-	if p[1]!=1 and p[3]!=0:
+	if p[1]!=0 and p[3]!=0:
 		p[0]=1
 	else:
 		p[0]=0
@@ -525,14 +523,12 @@ def p_expr2NUM( p ) :
 	global e_type
 	type_translate = {'T_INT':'int','T_FLOAT':'float'}
 	e_type.append(type_translate[n_type])
-	# print(e_type)
 	p[0] = p[1]
 
 def p_expr2ID( p ) :
 	'EXPR : ID'
 	global e_type,l_symbol_table,g_symbol_table
 	try:
-		# print(p[1],l_symbol_table,g_symbol_table)
 		var_details = l_symbol_table['var'].get(p[1],-1)
 		if var_details == -1:
 			var_details = g_symbol_table['var'].get(p[1],-1)
@@ -555,7 +551,6 @@ def p_seen_lparan(p):
 	except err_handler.ParanMismatchError as e:
 		print(str(e))
 		exit(0)	
-	# print(paran_stack)
 
 def p_seen_rparan(p):
 	'seen_rparan :'
@@ -568,7 +563,6 @@ def p_seen_rparan(p):
 	except err_handler.ParanMismatchError as e:
 		print(str(e))
 		exit(0)
-	# print(paran_stack)
 
 def p_seen_lbrace(p):
 	'seen_lbrace :'
@@ -592,7 +586,6 @@ def p_seen_rbrace(p):
 	except err_handler.ParanMismatchError as e:
 		print(str(e))
 		exit(0)
-	# print(paran_stack)
 
 def p_check_func_call_semantics(p):
 	'check_func_call_semantics :'
@@ -632,20 +625,21 @@ def p_check_func_call_semantics(p):
 		print(str(e))
 		exit(0)
 	except err_handler.FunctionNotDeclaredError as e2:
-		print(str(e))	
+		print(str(e2))	
 		exit(0)
 
 def p_check_return_semantics(p):
 	'check_return_semantics :'
-	global f_ret_type
+	global f_ret_type, e_type
 	try:
 		if len(e_type)==0: raise err_handler.ReturnTypeMismatchError(e_lineno-1,f_ret_type)
-		elif f_ret_type != e_type[0]: err_handler.ReturnTypeMismatchError(e_lineno-1,f_ret_type,e_type[0])
+		elif f_ret_type != e_type[0]: raise err_handler.ReturnTypeMismatchError(e_lineno-1,f_ret_type,e_type[0])
 			
 	except err_handler.ReturnTypeMismatchError as e:
 		print(str(e))
 		exit(0)
 	f_ret_type = None
+	e_type = []
 
 def p_set_isfunc(p):
     'set_isfunc :'
@@ -757,7 +751,6 @@ def p_error(p):
 	exit(0)
 
 def check_paran_mismatch():
-	# print(paran_stack)
 	if len(paran_stack)!=0:
 		try:
 			raise err_handler.ParanMismatchError(e_lineno-1,'closing paranthesis not found')
@@ -817,14 +810,16 @@ def reset_func_globals():
     f_param_type = []
     f_isfunc = False
 
+
 lexer = lex.lex()
 parser = yacc.yacc()
 parser.parse('''
 	int add (int a,int b);
     int sum (int a, int b){
-        float p = 200.0 / 20.0;
-        int r = add(40,30);
-        return r;
+        int p = 20;
+        int r = 45;
+        add(10, 10);
+        return p;
     }
     int add(int a, int b){
     	return a+b;

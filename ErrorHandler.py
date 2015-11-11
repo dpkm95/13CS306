@@ -11,8 +11,12 @@ class VariableNotDeclaredError(Exception):
 		self.lineno = lineno
 		self.var = var
 	def __str__(self):
-		return 'ERROR: VariableNotDeclaredError at line '+str(self.lineno)+\
-			'\nERR MSG: variable '+self.var+' not declared'
+		if self.var is not None:
+			return 'ERROR: VariableNotDeclaredError at line '+str(self.lineno)+\
+				'\nERR MSG: variable '+self.var+' not declared'
+		else:
+			return 'ERROR: VariableNotDeclaredError at line '+str(self.lineno)+\
+				'\nERR MSG: variable not declared'
 
 class VariableRedeclarationError(Exception):
 	def __init__(self,lineno,var):
