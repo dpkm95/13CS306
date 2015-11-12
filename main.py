@@ -1,6 +1,13 @@
 import ply.yacc as yacc
 import ply.lex as lex
 import ErrorHandler as err_handler
+import os
+
+# File object for writing the output of the symbol table
+file_symbol = None
+
+# File object for writing the output of the Semantic Analysis of C Program
+file_writer = None
 
 #globals
 g_symbol_table = {'var':{},'func':{}}
@@ -124,9 +131,10 @@ def find_column(input,token):
 t_ignore = ' \t'
 
 def t_error(t):
-    print('Illegal character',t.value[0],'at line:'+str(t.lineno)\
-          +' pos:'+str(find_column(src.read(),t)))
-    t.lexer.skip(1)
+	print('Illegal character',t.value[0],'at line:'+str(t.lineno)+' pos:'+str(find_column(src.read(),t)))
+	illegal_character_statement = 'Illegal Character',t.value[0],'at line:'+str(t.lineno)+' pos:'+str(find_column(src.read(), t))
+	file_writer.write(str(illegal_character_statement)+"\n")
+	t.lexer.skip(1)
 
 def p_start(p):
 	'''
@@ -137,6 +145,7 @@ def p_seen_eof(p):
 	'seen_eof :'
 	check_paran_mismatch()
 	print('Semantic Analysis Completed.')
+	file_writer.write('Semantic Analysis Completed.\n')
 
 # CONSTRUCT - definition of function or declaration of function/var
 def p_construct(p):
@@ -205,6 +214,7 @@ def p_function_call(p):
 			e_type.append(func_details['return_type'])
 	except err_handler.FunctionNotDeclaredError as e:
 		print(str(e))
+		file_writer.write(str(e)+"\n")
 		exit(0)
 
 
@@ -265,6 +275,7 @@ def p_check_assignment_semantics(p):
 		if assignment_lhs_type != e_type[0]: raise err_handler.AssignmentTypeMismatchError(e_lineno-1,assignment_lhs_type,e_type[0])
 	except err_handler.AssignmentTypeMismatchError as e:
 		print(str(e))
+		file_writer.write(str(e)+"\n")
 		exit(0)
 
 	p[0] = v_val
@@ -283,6 +294,7 @@ def p_add( p ) :
 			raise err_handler.InvalidOperandError(e_lineno-1,p[2])
 	except err_handler.InvalidOperandError as e:
 		print(str(e))
+		file_writer.write(str(e)+"\n")
 		exit(0)
 	else:
 		e_type.pop()
@@ -301,6 +313,7 @@ def p_sub( p ) :
 			raise err_handler.InvalidOperandError(e_lineno-1,p[2])
 	except err_handler.InvalidOperandError as e:
 		print(str(e))
+		file_writer.write(str(e)+"\n")
 		exit(0)
 	else:
 		e_type.pop()
@@ -319,6 +332,7 @@ def p_mul( p ) :
 			raise err_handler.InvalidOperandError(e_lineno-1,p[2])
 	except err_handler.InvalidOperandError as e:
 		print(str(e))
+		file_writer.write(str(e)+"\n")
 		exit(0)
 	else:
 		e_type.pop()
@@ -337,6 +351,7 @@ def p_div( p ) :
 			raise err_handler.InvalidOperandError(e_lineno-1,p[2])
 	except err_handler.InvalidOperandError as e:
 		print(str(e))
+		file_writer.write(str(e)+"\n")
 		exit(0)
 	else:
 		e_type.pop()
@@ -355,6 +370,7 @@ def p_eq( p ) :
 			raise err_handler.InvalidOperandError(e_lineno-1,p[2])
 	except err_handler.InvalidOperandError as e:
 		print(str(e))
+		file_writer.write(str(e)+"\n")
 		exit(0)
 	else:
 		e_type.pop()
@@ -376,6 +392,7 @@ def p_ne( p ) :
 			raise err_handler.InvalidOperandError(e_lineno-1,p[2])
 	except err_handler.InvalidOperandError as e:
 		print(str(e))
+		file_writer.write(str(e)+"\n")
 		exit(0)
 	else:
 		e_type.pop()
@@ -397,6 +414,7 @@ def p_ge( p ) :
 			raise err_handler.InvalidOperandError(e_lineno-1,p[2])
 	except err_handler.InvalidOperandError as e:
 		print(str(e))
+		file_writer.write(str(e)+"\n")
 		exit(0)
 	else:
 		e_type.pop()
@@ -418,6 +436,7 @@ def p_le( p ) :
 			raise err_handler.InvalidOperandError(e_lineno-1,p[2])
 	except err_handler.InvalidOperandError as e:
 		print(str(e))
+		file_writer.write(str(e)+"\n")
 		exit(0)
 	else:
 		e_type.pop()
@@ -439,6 +458,7 @@ def p_gt( p ) :
 			raise err_handler.InvalidOperandError(e_lineno-1,p[2])
 	except err_handler.InvalidOperandError as e:
 		print(str(e))
+		file_writer.write(str(e)+"\n")
 		exit(0)
 	else:
 		e_type.pop()
@@ -460,6 +480,7 @@ def p_lt( p ) :
 			raise err_handler.InvalidOperandError(e_lineno-1,p[2])
 	except err_handler.InvalidOperandError as e:
 		print(str(e))
+		file_writer.write(str(e)+"\n")
 		exit(0)
 	else:
 		e_type.pop()
@@ -481,6 +502,7 @@ def p_and( p ) :
 			raise err_handler.InvalidOperandError(e_lineno-1,p[2])
 	except err_handler.InvalidOperandError as e:
 		print(str(e))
+		file_writer(str(e)+"\n")
 		exit(0)
 	else:
 		e_type.pop()
@@ -502,6 +524,7 @@ def p_or( p ) :
 			raise err_handler.InvalidOperandError(e_lineno-1,p[2])
 	except err_handler.InvalidOperandError as e:
 		print(str(e))
+		file_writer.write(str(e)+"\n")
 		exit(0)
 	else:
 		e_type.pop()
@@ -535,6 +558,7 @@ def p_expr2ID( p ) :
 		if var_details == -1: raise err_handler.VariableNotDeclaredError(e_lineno-1,p[1])
 	except err_handler.VariableNotDeclaredError as e:
 		print(str(e))
+		file_writer.write(str(e)+"\n")
 		exit(0)
 	else:
 		e_type.append(var_details['type'])
@@ -550,6 +574,7 @@ def p_seen_lparan(p):
 			paran_stack.append('(')
 	except err_handler.ParanMismatchError as e:
 		print(str(e))
+		file_writer.write(str(e)+"\n")
 		exit(0)	
 
 def p_seen_rparan(p):
@@ -562,6 +587,7 @@ def p_seen_rparan(p):
 			else: raise err_handler.ParanMismatchError(e_lineno-1,"match not found for ')'")
 	except err_handler.ParanMismatchError as e:
 		print(str(e))
+		file_writer.write(str(e)+"\n")
 		exit(0)
 
 def p_seen_lbrace(p):
@@ -573,6 +599,7 @@ def p_seen_lbrace(p):
 			paran_stack.append('{')
 	except err_handler.ParanMismatchError as e:
 		print(str(e))
+		file_writer.write(str(e)+"\n")
 		exit(0)	
 
 def p_seen_rbrace(p):
@@ -585,6 +612,7 @@ def p_seen_rbrace(p):
 			else: raise err_handler.ParanMismatchError(e_lineno-1,"match not found for '}'")
 	except err_handler.ParanMismatchError as e:
 		print(str(e))
+		file_writer.write(str(e)+"\n")
 		exit(0)
 
 def p_check_func_call_semantics(p):
@@ -623,9 +651,11 @@ def p_check_func_call_semantics(p):
 		f_param_type = []
 	except err_handler.VariableNotDeclaredError as e:
 		print(str(e))
+		file.writer.write(str(e)+"\n")
 		exit(0)
 	except err_handler.FunctionNotDeclaredError as e2:
 		print(str(e2))	
+		file_writer.write(str(e2)+"\n")
 		exit(0)
 
 def p_check_return_semantics(p):
@@ -637,6 +667,7 @@ def p_check_return_semantics(p):
 			
 	except err_handler.ReturnTypeMismatchError as e:
 		print(str(e))
+		file_writer.write(str(e)+"\n")
 		exit(0)
 	f_ret_type = None
 	e_type = []
@@ -664,11 +695,13 @@ def p_set_isdef(p):
 	for  v_type,v_name in zip(f_param_type,f_param_name):
 		if v_name not in l_symbol_table['var']:
 			l_symbol_table['var'][v_name] = {'type': v_type, 'value':{'int':0,'float':0.0}[v_type]}
+			local_writer.write(str(l_symbol_table['var'][v_name])+"\n")
 		else:
 			try:
 				raise err_handler.VariableRedeclarationError(e_lineno-1,v_name)
 			except err_handler.VariableRedeclarationError as e:
  				print(str(e))
+				file_writer.write(str(e)+"\n")
  				exit(0)
 
 def p_reset_make_global_entry(p):
@@ -677,11 +710,12 @@ def p_reset_make_global_entry(p):
 	f_make_global_entry = False
 
 def p_reset_isdef(p):
-    'reset_isdef :'
-    global f_isdef, l_symbol_table, e_type
-    f_isdef = False
-    e_type = []
-    l_symbol_table = {'var':{},'func':{}}
+	'reset_isdef :'
+	global f_isdef, l_symbol_table, e_type
+	f_isdef = False
+	e_type = []
+	l_symbol_table = {'var':{},'func':{}}
+	local_writer.write("Local symbol reset\n")
 
 def p_set_type(p):
     'set_type :'
@@ -710,11 +744,19 @@ def p_make_var_entry(p):
     	f_name = None
     check_var_semantics()
     if f_isdef:
-        if n_type is not None: l_symbol_table['var'][g_name] = {'type':g_type,'value':v_val}
-        else: l_symbol_table['var'][g_name] = {'type':g_type,'value':{'int':0,'float':0.0}[g_type]}
+        if n_type is not None: 
+			l_symbol_table['var'][g_name] = {'type':g_type,'value':v_val}
+			local_writer.write(str(l_symbol_table['var'][g_name])+"\n")
+        else: 
+			l_symbol_table['var'][g_name] = {'type':g_type,'value':{'int':0,'float':0.0}[g_type]}
+			local_writer.write(str(l_symbol_table['var'][g_name])+"\n")
     else:
-        if n_type is not None: g_symbol_table['var'][g_name] = {'type':g_type,'value':v_val}
-        else: g_symbol_table['var'][g_name] = {'type':g_type,'value':{'int':0,'float':0.0}[g_type]}
+        if n_type is not None: 
+			g_symbol_table['var'][g_name] = {'type':g_type,'value':v_val}
+			symbol_writer.write(str(g_symbol_table['var'][g_name])+"\n")
+        else: 
+			g_symbol_table['var'][g_name] = {'type':g_type,'value':{'int':0,'float':0.0}[g_type]}
+			symbol_writer.write(str(g_symbol_table['var'][g_name])+"\n")
     
     reset_var_globals()
 
@@ -725,10 +767,13 @@ def p_make_func_entry(p):
 	if f_isdef and not f_make_global_entry:
 		if g_name in l_symbol_table['func']: 
 			raise err_handler.FunctionRedeclarationError
-		else: l_symbol_table['func'][g_name] = {'return_type' : g_type, 'param' : f_param_type}
+		else: 
+			l_symbol_table['func'][g_name] = {'return_type' : g_type, 'param' : f_param_type}
+			local_writer.write(str(l_symbol_table['func'][g_name])+"\n")
 	else:
 		if g_name not in g_symbol_table['func']:
 			g_symbol_table['func'][g_name] = {'return_type' : g_type, 'param' : f_param_type}
+			symbol_writer.write(str(g_symbol_table['func'][g_name])+"\n")
 		else:
 			try:
 				func_details = g_symbol_table['func'][g_name]
@@ -737,6 +782,7 @@ def p_make_func_entry(p):
 					if param != func_details['param'][i]: raise err_handler.FunctionOverloadingError(e_lineno-1,g_name)
 			except err_handler.FunctionOverloadingError as e:
 				print(str(e))
+				file_writer.write(str(e)+"\n")
 				exit(0)
 		f_ret_type = g_type
 
@@ -744,10 +790,15 @@ def p_make_func_entry(p):
 
 def p_error(p):
 	print('syntax error at line',e_lineno-1)
+	syntax_error_print = 'syntax error at line',e_lineno-1
+	file_writer.write(str(syntax_error_print)+"\n")
 	if p.type in ['MK_SC','T_INT','T_FLOAT']:
-		print('paranthesis not found near',p.value)
+		print('parenthesis not found near',p.value)
+		parenthesis_error_print = 'parenthesis not found near',p.value
+		file_writer.write(str(parenthesis_error_print)+"\n")
 	if p.type in ['ID']:
 		print('Invalid Identifier')
+		file_writer.write('Invalid Identifier\n')
 	exit(0)
 
 def check_paran_mismatch():
@@ -756,6 +807,7 @@ def check_paran_mismatch():
 			raise err_handler.ParanMismatchError(e_lineno-1,'closing paranthesis not found')
 		except err_handler.ParanMismatchError as e:
 			print(str(e))
+			file_writer.write(str(e)+"\n")
 			exit(0)
 
 def p_empty(p):
@@ -777,12 +829,15 @@ def check_var_semantics():
 			if n_type is not keywords[g_type]: raise err_handler.VariableTypeError(e_lineno-1,n_type)
 	except err_handler.VariableTypeError as e:
 		print(str(e))
+		file_writer.write(str(e)+"\n")
 		exit(0)
 	except err_handler.VariableRedeclarationError as e2:
 		print(str(e))
+		file_writer.write(str(e)+"\n")
 		exit(0)
 	except Exception as e3:
 		print(str(e))
+		file_writer.write(str(e)+"\n")
 		exit(0)
 
 def reset_var_globals():
@@ -800,6 +855,7 @@ def check_func_semantics():
 			if g_name in g_symbol_table['func']: raise err_handler.FunctionRedeclarationError(e_lineno-1,g_name)
 	except err_handler.FunctionRedeclarationError as e:
 		print(str(e))
+		file_writer.write(str(e)+"\n")
 		exit(0)
 
 def reset_func_globals():
@@ -810,18 +866,33 @@ def reset_func_globals():
     f_param_type = []
     f_isfunc = False
 
-
-lexer = lex.lex()
-parser = yacc.yacc()
-parser.parse('''
-	int add (int a,int b);
-    int sum (int a, int b){
-        int p = 20;
-        int r = 45;
-        add(10, 10);
-        return p;
-    }
-    int add(int a, int b){
-    	return a+b;
-    }
-''')
+def called_main(global_name):
+	# global_name is the path of the C Program passed as input
+	global file_writer
+	global symbol_writer
+	global local_writer
+	
+	output_filepath = "C:\\Users\\Aditya\\Desktop\\13CS306\\13CS306\\semantic_analyzer_output.txt"
+	symbol_filepath = "C:\\Users\\Aditya\\Desktop\\13CS306\\13CS306\\semantic_symbol_table.txt"
+	local_filepath  = "C:\\Users\\Aditya\\Desktop\\13CS306\\13CS306\\semantic_local_table.txt"
+	
+	# Create the files, overwrites the existing files
+	os.system("touch "+output_filepath)
+	os.system("touch "+symbol_filepath)
+	os.system("touch "+local_filepath)
+	
+	symbol_writer = open(symbol_filepath, 'w')
+	file_writer = open(output_filepath, 'w')
+	local_writer = open(local_filepath, 'w')
+	
+	# File object for the C Program
+	file_readprogram = open(global_name, 'r')
+	lexer = lex.lex()
+	parser = yacc.yacc()
+	parser.parse(file_readprogram.read())
+	
+	# Close the files
+	file_readprogram.close()
+	symbol_writer.close()
+	file_writer.close()
+	local_writer.close()
