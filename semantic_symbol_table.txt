@@ -1,0 +1,2 @@
+{'return_type': 'int', 'param': ['int', 'int']}
+{'return_type': 'int', 'param': ['int', 'int']}
