@@ -1,13 +1,11 @@
 import ply.yacc as yacc
 import ply.lex as lex
 import ErrorHandler as err_handler
-import os
-
-# File object for writing the output of the symbol table
-file_symbol = None
-
-# File object for writing the output of the Semantic Analysis of C Program
-file_writer = None
+from Tkinter import *
+from ScrolledText import *
+import tkFileDialog
+import tkMessageBox
+import re
 
 #globals
 g_symbol_table = {'var':{},'func':{}}
@@ -29,7 +27,7 @@ f_name = None
 e_type = []
 f_param_name = []
 f_func_call = {''}
-e_lineno = None
+e_lineno = 1
 
 keywords = {
         'if':'KW_IF',
@@ -65,7 +63,6 @@ precedence = (
 	( 'nonassoc', 'UMINUS' )
 )
 
-
 markers = {
     ';' : 'MK_SC',
     ',' : 'MK_CM',
@@ -76,7 +73,24 @@ markers = {
 }
 
 tokens = ['ID','NUM_FLOAT','NUM_INT'] + list(keywords.values()) + list(operators.values()) + list(markers.values()) 
-	
+
+lexer = None
+parser = None
+root = Tk(className="Semantic Analyzer")
+file_reader = open('src_program.c')
+textPad = ScrolledText(root, width=50, height=25)
+textPad.insert('1.0',file_reader.read())
+
+#################################### Lexer Segment ####################################
+
+t_ignore = ' \t\r'
+
+def t_newline(t):
+    r'\n'
+    global e_lineno
+    t.lexer.lineno += 1
+    e_lineno += 1
+
 def t_OP(t):
     r'(\+|\*|-|/|=|/|<|<=|>|>=|!=|==|&&|\|\|)'
     t.type = operators[t.value]    
@@ -114,27 +128,11 @@ def t_NUM(t):
         	f_param_name.append(t.value)
     return t
 
-def t_newline(t):
-    r'\n+'
-    global e_lineno
-    t.lexer.lineno += len(t.value)
-    e_lineno = t.lexer.lineno
-    t.lexer.skip(len(t.value))
-
-def find_column(input,token):
-    last_cr = input.rfind('\n',0,token.lexpos)
-    if last_cr < 0:
-        last_cr = 0
-    column = (token.lexpos - last_cr) + 1
-    return column
-
-t_ignore = ' \t'
-
 def t_error(t):
-	print('Illegal character',t.value[0],'at line:'+str(t.lineno)+' pos:'+str(find_column(src.read(),t)))
-	illegal_character_statement = 'Illegal Character',t.value[0],'at line:'+str(t.lineno)+' pos:'+str(find_column(src.read(), t))
-	file_writer.write(str(illegal_character_statement)+"\n")
-	t.lexer.skip(1)
+    print('Illegal character',t.value[0],'at line:'+str(t.lineno))
+    t.lexer.skip(1)
+
+#################################### Parser Segment ####################################
 
 def p_start(p):
 	'''
@@ -145,7 +143,10 @@ def p_seen_eof(p):
 	'seen_eof :'
 	check_paran_mismatch()
 	print('Semantic Analysis Completed.')
-	file_writer.write('Semantic Analysis Completed.\n')
+	label = Label(text='Semantic Analysis Completed.')
+	label.pack()
+	button = Button(text='Quit', command=quit_error_label)
+	button.pack()
 
 # CONSTRUCT - definition of function or declaration of function/var
 def p_construct(p):
@@ -208,15 +209,14 @@ def p_function_call(p):
 		if func_details == -1:
 			func_details = g_symbol_table['func'].get(g_name,-1)
 		if func_details == -1: 
-			raise FunctionNotDeclaredError(e_lineno-1,g_name)
+			raise FunctionNotDeclaredError(e_lineno,g_name)
 		else:
 
 			e_type.append(func_details['return_type'])
 	except err_handler.FunctionNotDeclaredError as e:
 		print(str(e))
-		file_writer.write(str(e)+"\n")
-		exit(0)
-
+		print_error(str(e))
+		#exit(0)
 
 def p_function_call_param(p):
 	'''
@@ -260,7 +260,7 @@ def p_set_is_assignment(p):
 		var_details = l_symbol_table['var'].get(p[-1],-1)
 		if var_details == -1:
 			var_details = g_symbol_table['var'].get(p[-1],-1)
-		if var_details == -1: raise err_handler.VariableNotDeclaredError(e_lineno-1,p[-1])
+		if var_details == -1: raise err_handler.VariableNotDeclaredError(e_lineno,p[-1])
 	except err_handler.VariableNotDeclaredError as e:
 		e_lineno.append(str(e))
 	else:
@@ -272,11 +272,11 @@ def p_check_assignment_semantics(p):
 	'check_assignment_semantics :'
 	global assignment_lhs_type,e_type
 	try:
-		if assignment_lhs_type != e_type[0]: raise err_handler.AssignmentTypeMismatchError(e_lineno-1,assignment_lhs_type,e_type[0])
+		if assignment_lhs_type != e_type[0]: raise err_handler.AssignmentTypeMismatchError(e_lineno,assignment_lhs_type,e_type[0])
 	except err_handler.AssignmentTypeMismatchError as e:
 		print(str(e))
-		file_writer.write(str(e)+"\n")
-		exit(0)
+		print_error(str(e))
+		#exit(0)
 
 	p[0] = v_val
 	e_type = []
@@ -289,13 +289,13 @@ def p_add( p ) :
 	try:	
 		try:
 			if e_type[0] != e_type[1]:
-				raise err_handler.InvalidOperandError(e_lineno-1)
+				raise err_handler.InvalidOperandError(e_lineno)
 		except IndexError as e2:
-			raise err_handler.InvalidOperandError(e_lineno-1,p[2])
+			raise err_handler.InvalidOperandError(e_lineno,p[2])
 	except err_handler.InvalidOperandError as e:
 		print(str(e))
-		file_writer.write(str(e)+"\n")
-		exit(0)
+		print_error(str(e))
+		#exit(0)
 	else:
 		e_type.pop()
 	p[0]=p[1]+p[3]
@@ -308,13 +308,13 @@ def p_sub( p ) :
 	try:	
 		try:
 			if e_type[0] != e_type[1]:
-				raise err_handler.InvalidOperandError(e_lineno-1)
+				raise err_handler.InvalidOperandError(e_lineno)
 		except IndexError as e2:
-			raise err_handler.InvalidOperandError(e_lineno-1,p[2])
+			raise err_handler.InvalidOperandError(e_lineno,p[2])
 	except err_handler.InvalidOperandError as e:
 		print(str(e))
-		file_writer.write(str(e)+"\n")
-		exit(0)
+		print_error(str(e))
+		#exit(0)
 	else:
 		e_type.pop()
 	p[0]=p[1]-p[3]
@@ -327,13 +327,13 @@ def p_mul( p ) :
 	try:	
 		try:
 			if e_type[0] != e_type[1]:
-				raise err_handler.InvalidOperandError(e_lineno-1)
+				raise err_handler.InvalidOperandError(e_lineno)
 		except IndexError as e2:
-			raise err_handler.InvalidOperandError(e_lineno-1,p[2])
+			raise err_handler.InvalidOperandError(e_lineno,p[2])
 	except err_handler.InvalidOperandError as e:
 		print(str(e))
-		file_writer.write(str(e)+"\n")
-		exit(0)
+		print_error(str(e))
+		#exit(0)
 	else:
 		e_type.pop()
 	p[0]=p[1]*p[3]
@@ -346,13 +346,13 @@ def p_div( p ) :
 	try:	
 		try:
 			if e_type[0] != e_type[1]:
-				raise err_handler.InvalidOperandError(e_lineno-1)
+				raise err_handler.InvalidOperandError(e_lineno)
 		except IndexError as e2:
-			raise err_handler.InvalidOperandError(e_lineno-1,p[2])
+			raise err_handler.InvalidOperandError(e_lineno,p[2])
 	except err_handler.InvalidOperandError as e:
 		print(str(e))
-		file_writer.write(str(e)+"\n")
-		exit(0)
+		print_error(str(e))
+		#exit(0)
 	else:
 		e_type.pop()
 	p[0]=p[1]/p[3]
@@ -365,13 +365,13 @@ def p_eq( p ) :
 	try:	
 		try:
 			if e_type[0] != e_type[1]:
-				raise err_handler.InvalidOperandError(e_lineno-1)
+				raise err_handler.InvalidOperandError(e_lineno)
 		except IndexError as e2:
-			raise err_handler.InvalidOperandError(e_lineno-1,p[2])
+			raise err_handler.InvalidOperandError(e_lineno,p[2])
 	except err_handler.InvalidOperandError as e:
 		print(str(e))
-		file_writer.write(str(e)+"\n")
-		exit(0)
+		print_error(str(e))
+		#exit(0)
 	else:
 		e_type.pop()
 	if p[1] == p[3]:
@@ -387,13 +387,13 @@ def p_ne( p ) :
 	try:	
 		try:
 			if e_type[0] != e_type[1]:
-				raise err_handler.InvalidOperandError(e_lineno-1)
+				raise err_handler.InvalidOperandError(e_lineno)
 		except IndexError as e2:
-			raise err_handler.InvalidOperandError(e_lineno-1,p[2])
+			raise err_handler.InvalidOperandError(e_lineno,p[2])
 	except err_handler.InvalidOperandError as e:
 		print(str(e))
-		file_writer.write(str(e)+"\n")
-		exit(0)
+		print_error(str(e))
+		#exit(0)
 	else:
 		e_type.pop()
 	if p[1] != p[3]:
@@ -409,13 +409,13 @@ def p_ge( p ) :
 	try:	
 		try:
 			if e_type[0] != e_type[1]:
-				raise err_handler.InvalidOperandError(e_lineno-1)
+				raise err_handler.InvalidOperandError(e_lineno)
 		except IndexError as e2:
-			raise err_handler.InvalidOperandError(e_lineno-1,p[2])
+			raise err_handler.InvalidOperandError(e_lineno,p[2])
 	except err_handler.InvalidOperandError as e:
 		print(str(e))
-		file_writer.write(str(e)+"\n")
-		exit(0)
+		print_error(str(e))
+		#exit(0)
 	else:
 		e_type.pop()
 	if p[1] >= p[3]:
@@ -431,13 +431,13 @@ def p_le( p ) :
 	try:	
 		try:
 			if e_type[0] != e_type[1]:
-				raise err_handler.InvalidOperandError(e_lineno-1)
+				raise err_handler.InvalidOperandError(e_lineno)
 		except IndexError as e2:
-			raise err_handler.InvalidOperandError(e_lineno-1,p[2])
+			raise err_handler.InvalidOperandError(e_lineno,p[2])
 	except err_handler.InvalidOperandError as e:
 		print(str(e))
-		file_writer.write(str(e)+"\n")
-		exit(0)
+		print_error(str(e))
+		#exit(0)
 	else:
 		e_type.pop()
 	if p[1] <= p[3]:
@@ -453,13 +453,13 @@ def p_gt( p ) :
 	try:	
 		try:
 			if e_type[0] != e_type[1]:
-				raise err_handler.InvalidOperandError(e_lineno-1)
+				raise err_handler.InvalidOperandError(e_lineno)
 		except IndexError as e2:
-			raise err_handler.InvalidOperandError(e_lineno-1,p[2])
+			raise err_handler.InvalidOperandError(e_lineno,p[2])
 	except err_handler.InvalidOperandError as e:
 		print(str(e))
-		file_writer.write(str(e)+"\n")
-		exit(0)
+		print_error(str(e))
+		#exit(0)
 	else:
 		e_type.pop()
 	if p[1] > p[3]:
@@ -475,13 +475,13 @@ def p_lt( p ) :
 	try:	
 		try:
 			if e_type[0] != e_type[1]:
-				raise err_handler.InvalidOperandError(e_lineno-1)
+				raise err_handler.InvalidOperandError(e_lineno)
 		except IndexError as e2:
-			raise err_handler.InvalidOperandError(e_lineno-1,p[2])
+			raise err_handler.InvalidOperandError(e_lineno,p[2])
 	except err_handler.InvalidOperandError as e:
 		print(str(e))
-		file_writer.write(str(e)+"\n")
-		exit(0)
+		print_error(str(e))
+		#exit(0)
 	else:
 		e_type.pop()
 	if p[1] < p[3]:
@@ -497,13 +497,13 @@ def p_and( p ) :
 	try:	
 		try:
 			if e_type[0] != e_type[1]:
-				raise err_handler.InvalidOperandError(e_lineno-1)
+				raise err_handler.InvalidOperandError(e_lineno)
 		except IndexError as e2:
-			raise err_handler.InvalidOperandError(e_lineno-1,p[2])
+			raise err_handler.InvalidOperandError(e_lineno,p[2])
 	except err_handler.InvalidOperandError as e:
 		print(str(e))
-		file_writer(str(e)+"\n")
-		exit(0)
+		print_error(str(e))
+		#exit(0)
 	else:
 		e_type.pop()
 	if p[1]!=0 and p[3]!=0:
@@ -519,13 +519,13 @@ def p_or( p ) :
 	try:	
 		try:
 			if e_type[0] != e_type[1]:
-				raise err_handler.InvalidOperandError(e_lineno-1)
+				raise err_handler.InvalidOperandError(e_lineno)
 		except IndexError as e2:
-			raise err_handler.InvalidOperandError(e_lineno-1,p[2])
+			raise err_handler.InvalidOperandError(e_lineno,p[2])
 	except err_handler.InvalidOperandError as e:
 		print(str(e))
-		file_writer.write(str(e)+"\n")
-		exit(0)
+		print_error(str(e))
+		#exit(0)
 	else:
 		e_type.pop()
 	if p[1]!=0 or p[3]!=0:
@@ -555,11 +555,11 @@ def p_expr2ID( p ) :
 		var_details = l_symbol_table['var'].get(p[1],-1)
 		if var_details == -1:
 			var_details = g_symbol_table['var'].get(p[1],-1)
-		if var_details == -1: raise err_handler.VariableNotDeclaredError(e_lineno-1,p[1])
+		if var_details == -1: raise err_handler.VariableNotDeclaredError(e_lineno,p[1])
 	except err_handler.VariableNotDeclaredError as e:
 		print(str(e))
-		file_writer.write(str(e)+"\n")
-		exit(0)
+		print_error(str(e))
+		#exit(0)
 	else:
 		e_type.append(var_details['type'])
 		p[0] = var_details['value']
@@ -569,51 +569,50 @@ def p_seen_lparan(p):
 	global paran_stack	
 	try:
 		if p[-1] != '(':
-			raise err_handler.ParanMismatchError(e_lineno-1,"missing '('")
+			raise err_handler.ParanMismatchError(e_lineno,"missing '('")
 		else:
 			paran_stack.append('(')
 	except err_handler.ParanMismatchError as e:
 		print(str(e))
-		file_writer.write(str(e)+"\n")
-		exit(0)	
+		print_error(str(e))
+		#exit(0)	
 
 def p_seen_rparan(p):
 	'seen_rparan :'
 	global paran_stack
 	try:
-		if len(paran_stack) == 0: raise err_handler.ParanMismatchError(e_lineno-1,"match not found for ')'")
+		if len(paran_stack) == 0: raise err_handler.ParanMismatchError(e_lineno,"match not found for ')'")
 		else:
 			if paran_stack[len(paran_stack)-1] == '(': paran_stack.pop()
-			else: raise err_handler.ParanMismatchError(e_lineno-1,"match not found for ')'")
+			else: raise err_handler.ParanMismatchError(e_lineno,"match not found for ')'")
 	except err_handler.ParanMismatchError as e:
 		print(str(e))
-		file_writer.write(str(e)+"\n")
-		exit(0)
+		#exit(0)
 
 def p_seen_lbrace(p):
 	'seen_lbrace :'
 	try:
 		if p[-1] != '{':
-			raise err_handler.ParanMismatchError(e_lineno-1,"missing '{'")
+			raise err_handler.ParanMismatchError(e_lineno,"missing '{'")
 		else:
 			paran_stack.append('{')
 	except err_handler.ParanMismatchError as e:
 		print(str(e))
-		file_writer.write(str(e)+"\n")
-		exit(0)	
+		print_error(str(e))
+		#exit(0)	
 
 def p_seen_rbrace(p):
 	'seen_rbrace :'
 	global paran_stack
 	try:
-		if len(paran_stack) == 0: raise err_handler.ParanMismatchError(e_lineno-1,"match not found for '}'")
+		if len(paran_stack) == 0: raise err_handler.ParanMismatchError(e_lineno,"match not found for '}'")
 		else:
 			if paran_stack[len(paran_stack)-1] == '{': paran_stack.pop()
-			else: raise err_handler.ParanMismatchError(e_lineno-1,"match not found for '}'")
+			else: raise err_handler.ParanMismatchError(e_lineno,"match not found for '}'")
 	except err_handler.ParanMismatchError as e:
 		print(str(e))
-		file_writer.write(str(e)+"\n")
-		exit(0)
+		print_error(str(e))
+		#exit(0)
 
 def p_check_func_call_semantics(p):
 	'check_func_call_semantics :'
@@ -625,11 +624,11 @@ def p_check_func_call_semantics(p):
 		if func_details == -1:
 			func_details = g_symbol_table['func'].get(g_name,-1)
 		if func_details == -1:
-			raise err_handler.FunctionNotDeclaredError(e_lineno-1,g_name)
+			raise err_handler.FunctionNotDeclaredError(e_lineno,g_name)
 		else:
 			# check func param count
 			if len(f_param_name) != len(func_details['param']):
-				raise err_handler.FunctionNotDeclaredError(e_lineno-1,g_name)
+				raise err_handler.FunctionNotDeclaredError(e_lineno,g_name)
 			# for each actual param in 'f_param_name'-
 			# check if it exists in scope
 			j=0
@@ -638,37 +637,37 @@ def p_check_func_call_semantics(p):
 					var_details = l_symbol_table['var'].get(p[-1],-1)
 					if var_details == -1:
 						var_details = g_symbol_table['var'].get(p[-1],-1)
-					if var_details == -1: raise err_handler.VariableNotDeclaredError(e_lineno-1,p[-1])
+					if var_details == -1: raise err_handler.VariableNotDeclaredError(e_lineno,p[-1])
 					else:
 						# check type against 'g_name' function param type
 						if func_details['param'][i] != var_details['type']:
-							raise err_handler.FunctionNotDeclaredError(e_lineno-1,g_name)
+							raise err_handler.FunctionNotDeclaredError(e_lineno,g_name)
 				else:
 					if func_details['param'][i] != f_param_type[j]:
-						raise err_handler.FunctionNotDeclaredError(e_lineno-1,g_name)
+						raise err_handler.FunctionNotDeclaredError(e_lineno,g_name)
 						j+=1
 		f_param_name = []
 		f_param_type = []
 	except err_handler.VariableNotDeclaredError as e:
 		print(str(e))
-		file.writer.write(str(e)+"\n")
-		exit(0)
+		print_error(str(e))
+		#exit(0)
 	except err_handler.FunctionNotDeclaredError as e2:
-		print(str(e2))	
-		file_writer.write(str(e2)+"\n")
-		exit(0)
+		print(str(e2))
+		print_error(str(e2))
+		#exit(0)
 
 def p_check_return_semantics(p):
 	'check_return_semantics :'
 	global f_ret_type, e_type
 	try:
-		if len(e_type)==0: raise err_handler.ReturnTypeMismatchError(e_lineno-1,f_ret_type)
-		elif f_ret_type != e_type[0]: raise err_handler.ReturnTypeMismatchError(e_lineno-1,f_ret_type,e_type[0])
+		if len(e_type)==0: raise err_handler.ReturnTypeMismatchError(e_lineno,f_ret_type)
+		elif f_ret_type != e_type[0]: raise err_handler.ReturnTypeMismatchError(e_lineno,f_ret_type,e_type[0])
 			
 	except err_handler.ReturnTypeMismatchError as e:
 		print(str(e))
-		file_writer.write(str(e)+"\n")
-		exit(0)
+		print_error(str(e))
+		#exit(0)
 	f_ret_type = None
 	e_type = []
 
@@ -695,14 +694,13 @@ def p_set_isdef(p):
 	for  v_type,v_name in zip(f_param_type,f_param_name):
 		if v_name not in l_symbol_table['var']:
 			l_symbol_table['var'][v_name] = {'type': v_type, 'value':{'int':0,'float':0.0}[v_type]}
-			local_writer.write(str(l_symbol_table['var'][v_name])+"\n")
 		else:
 			try:
-				raise err_handler.VariableRedeclarationError(e_lineno-1,v_name)
+				raise err_handler.VariableRedeclarationError(e_lineno,v_name)
 			except err_handler.VariableRedeclarationError as e:
  				print(str(e))
-				file_writer.write(str(e)+"\n")
- 				exit(0)
+ 				print_error(str(e))
+ 				#exit(0)
 
 def p_reset_make_global_entry(p):
 	'reset_make_global_entry :'
@@ -710,12 +708,11 @@ def p_reset_make_global_entry(p):
 	f_make_global_entry = False
 
 def p_reset_isdef(p):
-	'reset_isdef :'
-	global f_isdef, l_symbol_table, e_type
-	f_isdef = False
-	e_type = []
-	l_symbol_table = {'var':{},'func':{}}
-	local_writer.write("Local symbol reset\n")
+    'reset_isdef :'
+    global f_isdef, l_symbol_table, e_type
+    f_isdef = False
+    e_type = []
+    l_symbol_table = {'var':{},'func':{}}
 
 def p_set_type(p):
     'set_type :'
@@ -744,71 +741,57 @@ def p_make_var_entry(p):
     	f_name = None
     check_var_semantics()
     if f_isdef:
-        if n_type is not None: 
-			l_symbol_table['var'][g_name] = {'type':g_type,'value':v_val}
-			local_writer.write(str(l_symbol_table['var'][g_name])+"\n")
-        else: 
-			l_symbol_table['var'][g_name] = {'type':g_type,'value':{'int':0,'float':0.0}[g_type]}
-			local_writer.write(str(l_symbol_table['var'][g_name])+"\n")
+        if n_type is not None: l_symbol_table['var'][g_name] = {'type':g_type,'value':v_val}
+        else: l_symbol_table['var'][g_name] = {'type':g_type,'value':{'int':0,'float':0.0}[g_type]}
     else:
-        if n_type is not None: 
-			g_symbol_table['var'][g_name] = {'type':g_type,'value':v_val}
-			symbol_writer.write(str(g_symbol_table['var'][g_name])+"\n")
-        else: 
-			g_symbol_table['var'][g_name] = {'type':g_type,'value':{'int':0,'float':0.0}[g_type]}
-			symbol_writer.write(str(g_symbol_table['var'][g_name])+"\n")
+        if n_type is not None: g_symbol_table['var'][g_name] = {'type':g_type,'value':v_val}
+        else: g_symbol_table['var'][g_name] = {'type':g_type,'value':{'int':0,'float':0.0}[g_type]}
     
     reset_var_globals()
 
 def p_make_func_entry(p):
 	'make_func_entry :'
 	global f_ret_type
-	check_func_semantics()
+	# check_func_semantics()
 	if f_isdef and not f_make_global_entry:
 		if g_name in l_symbol_table['func']: 
 			raise err_handler.FunctionRedeclarationError
-		else: 
-			l_symbol_table['func'][g_name] = {'return_type' : g_type, 'param' : f_param_type}
-			local_writer.write(str(l_symbol_table['func'][g_name])+"\n")
+		else: l_symbol_table['func'][g_name] = {'return_type' : g_type, 'param' : f_param_type}
 	else:
 		if g_name not in g_symbol_table['func']:
 			g_symbol_table['func'][g_name] = {'return_type' : g_type, 'param' : f_param_type}
-			symbol_writer.write(str(g_symbol_table['func'][g_name])+"\n")
 		else:
 			try:
 				func_details = g_symbol_table['func'][g_name]
-				if g_type != func_details['return_type']: raise err_handler.FunctionOverloadingError(e_lineno-1,g_name)
-				for i,param in enumerate(f_param_type):
-					if param != func_details['param'][i]: raise err_handler.FunctionOverloadingError(e_lineno-1,g_name)
+				if g_type != func_details['return_type']: raise err_handler.FunctionOverloadingError(e_lineno,g_name)
+				for i,param in enumerate(func_details):
+					if param != func_details['param'][i]: raise err_handler.FunctionOverloadingError(e_lineno,g_name)
 			except err_handler.FunctionOverloadingError as e:
 				print(str(e))
-				file_writer.write(str(e)+"\n")
-				exit(0)
+				print_error(str(e))
+				#exit(0)
 		f_ret_type = g_type
 
 	reset_func_globals()
 
 def p_error(p):
-	print('syntax error at line',e_lineno-1)
-	syntax_error_print = 'syntax error at line',e_lineno-1
-	file_writer.write(str(syntax_error_print)+"\n")
+	print('syntax error at line',e_lineno)
 	if p.type in ['MK_SC','T_INT','T_FLOAT']:
-		print('parenthesis not found near',p.value)
-		parenthesis_error_print = 'parenthesis not found near',p.value
-		file_writer.write(str(parenthesis_error_print)+"\n")
+		print('paranthesis not found near',p.value)
+		print_error('paranthesis not found near'+str(p.value))
 	if p.type in ['ID']:
 		print('Invalid Identifier')
-		file_writer.write('Invalid Identifier\n')
-	exit(0)
+		print_error('Invalid Identifier')
+	#exit(0)
 
 def check_paran_mismatch():
 	if len(paran_stack)!=0:
 		try:
-			raise err_handler.ParanMismatchError(e_lineno-1,'closing paranthesis not found')
+			raise err_handler.ParanMismatchError(e_lineno,'closing paranthesis not found')
 		except err_handler.ParanMismatchError as e:
 			print(str(e))
-			file_writer.write(str(e)+"\n")
-			exit(0)
+			print_error(str(e))
+			#exit(0)
 
 def p_empty(p):
     'empty :'
@@ -818,27 +801,27 @@ def check_var_semantics():
 	try:
 		#check variable type, rhs type match
 		if len(e_type) != 0:
-			if g_type != e_type[0]: raise err_handler.VariableTypeError(e_lineno-1,g_type,e_type[0])
+			if g_type != e_type[0]: raise err_handler.VariableTypeError(e_lineno,g_type,e_type[0])
 		#check is variable is already defined
 		if f_isdef:
-			if g_name in l_symbol_table['var']: raise err_handler.VariableRedeclarationError(e_lineno-1,g_name)
+			if g_name in l_symbol_table['var']: raise err_handler.VariableRedeclarationError(e_lineno,g_name)
 		else:
-			if g_name in g_symbol_table['var']: raise err_handler.VariableRedeclarationError(e_lineno-1,g_name)
+			if g_name in g_symbol_table['var']: raise err_handler.VariableRedeclarationError(e_lineno,g_name)
 		#check if declared var_type matches num_type
 		if n_type is not None:
-			if n_type is not keywords[g_type]: raise err_handler.VariableTypeError(e_lineno-1,n_type)
+			if n_type is not keywords[g_type]: raise err_handler.VariableTypeError(e_lineno,n_type)
 	except err_handler.VariableTypeError as e:
 		print(str(e))
-		file_writer.write(str(e)+"\n")
-		exit(0)
+		print_error(str(e))
+		#exit(0)
 	except err_handler.VariableRedeclarationError as e2:
-		print(str(e))
-		file_writer.write(str(e)+"\n")
-		exit(0)
+		print(str(e2))
+		print_error(str(e2))
+		#exit(0)
 	except Exception as e3:
-		print(str(e))
-		file_writer.write(str(e)+"\n")
-		exit(0)
+		print(str(e3))
+		print_error(str(e3))
+		#exit(0)
 
 def reset_var_globals():
     global v_val,n_type,e_type
@@ -851,12 +834,12 @@ def check_func_semantics():
 	try:
 		if not f_make_global_entry:	
 			if f_isdef:
-				if g_name in l_symbol_table['func']: raise err_handler.FunctionRedeclarationError(e_lineno-1,g_name)
-			if g_name in g_symbol_table['func']: raise err_handler.FunctionRedeclarationError(e_lineno-1,g_name)
+				if g_name in l_symbol_table['func']: raise err_handler.FunctionRedeclarationError(e_lineno,g_name)
+			if g_name in g_symbol_table['func']: raise err_handler.FunctionRedeclarationError(e_lineno,g_name)
 	except err_handler.FunctionRedeclarationError as e:
 		print(str(e))
-		file_writer.write(str(e)+"\n")
-		exit(0)
+		print_error(str(e))
+		#exit(0)
 
 def reset_func_globals():
     global g_name,f_param_name,f_param_type,g_type,f_isfunc
@@ -866,33 +849,27 @@ def reset_func_globals():
     f_param_type = []
     f_isfunc = False
 
-def called_main(global_name):
-	# global_name is the path of the C Program passed as input
-	global file_writer
-	global symbol_writer
-	global local_writer
-	
-	output_filepath = "C:\\Users\\Aditya\\Desktop\\13CS306\\13CS306\\semantic_analyzer_output.txt"
-	symbol_filepath = "C:\\Users\\Aditya\\Desktop\\13CS306\\13CS306\\semantic_symbol_table.txt"
-	local_filepath  = "C:\\Users\\Aditya\\Desktop\\13CS306\\13CS306\\semantic_local_table.txt"
-	
-	# Create the files, overwrites the existing files
-	os.system("touch "+output_filepath)
-	os.system("touch "+symbol_filepath)
-	os.system("touch "+local_filepath)
-	
-	symbol_writer = open(symbol_filepath, 'w')
-	file_writer = open(output_filepath, 'w')
-	local_writer = open(local_filepath, 'w')
-	
-	# File object for the C Program
-	file_readprogram = open(global_name, 'r')
-	lexer = lex.lex()
-	parser = yacc.yacc()
-	parser.parse(file_readprogram.read())
-	
-	# Close the files
-	file_readprogram.close()
-	symbol_writer.close()
+###################################### UI Segment ######################################
+
+def quit_error_label():
+	src_program = textPad.get('1.0',END)
+	file_writer = open('src_program.c','w')
+	file_writer.write(src_program.strip())
 	file_writer.close()
-	local_writer.close()
+	root.destroy()
+
+def print_error(err_msg):
+	global error_label
+	# parser.stop_yacc()
+	label = Label(text=err_msg)
+	label.pack()
+	# button = Button(text='Quit', command=quit_error_label)
+	# button.pack()
+
+textPad.pack()
+src_program = textPad.get('1.0',END)
+lexer = lex.lex()
+parser = yacc.yacc()
+parser.parse(src_program)
+
+root.mainloop()

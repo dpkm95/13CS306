@@ -55,10 +55,13 @@ class FunctionNotDeclaredError(Exception):
 			'\nERR MSG: function '+self.fun+' not declared'
 
 class InvalidOperandError(Exception):
-	def __init__(self,lineno,op):
+	def __init__(self,lineno,op=None):
 		self.lineno = lineno
 		self.op = op
 	def __str__(self):
+		if self.op is None:
+			return 'ERROR: InvalidOperandError at line '+str(self.lineno)+\
+			'\nERR MSG: invalid operand'
 		return 'ERROR: InvalidOperandError at line '+str(self.lineno)+\
 			'\nERR MSG: invalid operand for '+self.op+' operation'
 

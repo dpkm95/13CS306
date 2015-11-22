@@ -1,8 +1,0 @@
-{'type': 'int', 'value': 0}
-{'type': 'int', 'value': 0}
-{'type': 'float', 'value': 10.0}
-{'type': 'int', 'value': 0}
-Local symbol reset
-{'type': 'int', 'value': 0}
-{'type': 'int', 'value': 0}
-Local symbol reset
