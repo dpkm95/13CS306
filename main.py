@@ -288,8 +288,8 @@ def p_add( p ) :
 	global e_type
 	try:	
 		try:
-			if e_type[0] != e_type[1]:
-				raise err_handler.InvalidOperandError(e_lineno)
+			if e_type[len(e_type)-2] != e_type[len(e_type)-1]:
+				raise err_handler.InvalidOperandError(e_lineno,p[2])
 		except IndexError as e2:
 			raise err_handler.InvalidOperandError(e_lineno,p[2])
 	except err_handler.InvalidOperandError as e:
@@ -307,8 +307,8 @@ def p_sub( p ) :
 	global e_type
 	try:	
 		try:
-			if e_type[0] != e_type[1]:
-				raise err_handler.InvalidOperandError(e_lineno)
+			if e_type[len(e_type)-2] != e_type[len(e_type)-1]:
+				raise err_handler.InvalidOperandError(e_lineno,p[2])
 		except IndexError as e2:
 			raise err_handler.InvalidOperandError(e_lineno,p[2])
 	except err_handler.InvalidOperandError as e:
@@ -326,8 +326,8 @@ def p_mul( p ) :
 	global e_type
 	try:	
 		try:
-			if e_type[0] != e_type[1]:
-				raise err_handler.InvalidOperandError(e_lineno)
+			if e_type[len(e_type)-2] != e_type[len(e_type)-1]:
+				raise err_handler.InvalidOperandError(e_lineno,p[2])
 		except IndexError as e2:
 			raise err_handler.InvalidOperandError(e_lineno,p[2])
 	except err_handler.InvalidOperandError as e:
@@ -345,8 +345,8 @@ def p_div( p ) :
 	global e_type
 	try:	
 		try:
-			if e_type[0] != e_type[1]:
-				raise err_handler.InvalidOperandError(e_lineno)
+			if e_type[len(e_type)-2] != e_type[len(e_type)-1]:
+				raise err_handler.InvalidOperandError(e_lineno,p[2])
 		except IndexError as e2:
 			raise err_handler.InvalidOperandError(e_lineno,p[2])
 	except err_handler.InvalidOperandError as e:
@@ -364,8 +364,8 @@ def p_eq( p ) :
 	global e_type
 	try:	
 		try:
-			if e_type[0] != e_type[1]:
-				raise err_handler.InvalidOperandError(e_lineno)
+			if e_type[len(e_type)-2] != e_type[len(e_type)-1]:
+				raise err_handler.InvalidOperandError(e_lineno,p[2])
 		except IndexError as e2:
 			raise err_handler.InvalidOperandError(e_lineno,p[2])
 	except err_handler.InvalidOperandError as e:
@@ -386,8 +386,8 @@ def p_ne( p ) :
 	global e_type
 	try:	
 		try:
-			if e_type[0] != e_type[1]:
-				raise err_handler.InvalidOperandError(e_lineno)
+			if e_type[len(e_type)-2] != e_type[len(e_type)-1]:
+				raise err_handler.InvalidOperandError(e_lineno,p[2])
 		except IndexError as e2:
 			raise err_handler.InvalidOperandError(e_lineno,p[2])
 	except err_handler.InvalidOperandError as e:
@@ -408,8 +408,8 @@ def p_ge( p ) :
 	global e_type
 	try:	
 		try:
-			if e_type[0] != e_type[1]:
-				raise err_handler.InvalidOperandError(e_lineno)
+			if e_type[len(e_type)-2] != e_type[len(e_type)-1]:
+				raise err_handler.InvalidOperandError(e_lineno,p[2])
 		except IndexError as e2:
 			raise err_handler.InvalidOperandError(e_lineno,p[2])
 	except err_handler.InvalidOperandError as e:
@@ -430,8 +430,8 @@ def p_le( p ) :
 	global e_type
 	try:	
 		try:
-			if e_type[0] != e_type[1]:
-				raise err_handler.InvalidOperandError(e_lineno)
+			if e_type[len(e_type)-2] != e_type[len(e_type)-1]:
+				raise err_handler.InvalidOperandError(e_lineno,p[2])
 		except IndexError as e2:
 			raise err_handler.InvalidOperandError(e_lineno,p[2])
 	except err_handler.InvalidOperandError as e:
@@ -452,8 +452,8 @@ def p_gt( p ) :
 	global e_type
 	try:	
 		try:
-			if e_type[0] != e_type[1]:
-				raise err_handler.InvalidOperandError(e_lineno)
+			if e_type[len(e_type)-2] != e_type[len(e_type)-1]:
+				raise err_handler.InvalidOperandError(e_lineno,p[2])
 		except IndexError as e2:
 			raise err_handler.InvalidOperandError(e_lineno,p[2])
 	except err_handler.InvalidOperandError as e:
@@ -474,8 +474,8 @@ def p_lt( p ) :
 	global e_type
 	try:	
 		try:
-			if e_type[0] != e_type[1]:
-				raise err_handler.InvalidOperandError(e_lineno)
+			if e_type[len(e_type)-2] != e_type[len(e_type)-1]:
+				raise err_handler.InvalidOperandError(e_lineno,p[2])
 		except IndexError as e2:
 			raise err_handler.InvalidOperandError(e_lineno,p[2])
 	except err_handler.InvalidOperandError as e:
@@ -496,8 +496,8 @@ def p_and( p ) :
 	global e_type
 	try:	
 		try:
-			if e_type[0] != e_type[1]:
-				raise err_handler.InvalidOperandError(e_lineno)
+			if e_type[len(e_type)-2] != e_type[len(e_type)-1]:
+				raise err_handler.InvalidOperandError(e_lineno,p[2])
 		except IndexError as e2:
 			raise err_handler.InvalidOperandError(e_lineno,p[2])
 	except err_handler.InvalidOperandError as e:
@@ -518,8 +518,8 @@ def p_or( p ) :
 	global e_type
 	try:	
 		try:
-			if e_type[0] != e_type[1]:
-				raise err_handler.InvalidOperandError(e_lineno)
+			if e_type[len(e_type)-2] != e_type[len(e_type)-1]:
+				raise err_handler.InvalidOperandError(e_lineno,p[2])
 		except IndexError as e2:
 			raise err_handler.InvalidOperandError(e_lineno,p[2])
 	except err_handler.InvalidOperandError as e:
@@ -632,7 +632,9 @@ def p_check_func_call_semantics(p):
 			# for each actual param in 'f_param_name'-
 			# check if it exists in scope
 			j=0
+			print(l_symbol_table)
 			for i,param in enumerate(f_param_name):
+				print(func_details['param'] , f_param_type)
 				if type(param) is str:					
 					var_details = l_symbol_table['var'].get(p[-1],-1)
 					if var_details == -1:
@@ -643,9 +645,10 @@ def p_check_func_call_semantics(p):
 						if func_details['param'][i] != var_details['type']:
 							raise err_handler.FunctionNotDeclaredError(e_lineno,g_name)
 				else:
+					print(func_details['param'][i] , f_param_type[j])
 					if func_details['param'][i] != f_param_type[j]:
 						raise err_handler.FunctionNotDeclaredError(e_lineno,g_name)
-						j+=1
+				j+=1
 		f_param_name = []
 		f_param_type = []
 	except err_handler.VariableNotDeclaredError as e:
@@ -775,14 +778,18 @@ def p_make_func_entry(p):
 	reset_func_globals()
 
 def p_error(p):
-	print('syntax error at line',e_lineno)
+	# parser.stop_yacc()
+	# root.mainloop()
 	if p.type in ['MK_SC','T_INT','T_FLOAT']:
-		print('paranthesis not found near',p.value)
-		print_error('paranthesis not found near'+str(p.value))
+		print('Syntax Error at line '+str(e_lineno)+'\nparanthesis not found near '+str(p.value))
+		parser.stop_yacc()
+		print_error('Syntax Error at line '+str(e_lineno)+'\nparanthesis not found near '+str(p.value))
 	if p.type in ['ID']:
-		print('Invalid Identifier')
-		print_error('Invalid Identifier')
-	#exit(0)
+		print('Syntax Error at line '+str(e_lineno)+'\nInvalid Identifier')
+		parser.stop_yacc()
+		print_error('Syntax Error at line '+str(e_lineno)+'\nInvalid Identifier')
+	button = Button(text='Quit', command=quit_error_label)
+	button.pack()
 
 def check_paran_mismatch():
 	if len(paran_stack)!=0:
